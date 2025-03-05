@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>精确计时器生成器</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Arial, sans-serif;
+                background-color: #f5f5f5;
+                color: #333;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                margin: 0;
+                padding: 20px;
+            }
+            .container {
+                background: white;
+                padding: 30px;
+                border-radius: 12px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                width: 100%;
+                max-width: 600px;
+            }
+            h1 {
+                color: #2c3e50;
+                margin-bottom: 25px;
+                font-weight: 600;
+            }
+            .settings-group {
+                margin-bottom: 25px;
+            }
+            .input-group {
+                display: flex;
+                align-items: center;
+                margin-bottom: 15px;
+            }
+            .input-group label {
+                flex: 1;
+                margin-right: 15px;
+                font-weight: 500;
+            }
+            input[type="number"], select {
+                padding: 8px 12px;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                font-size: 14px;
+                width: 120px;
+                transition: border-color 0.3s;
+            }
+            input[type="number"]:focus, select:focus {
+                border-color: #3498db;
+                outline: none;
+            }
+            .button-group {
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+                margin-top: 20px;
+            }
+            button {
+                background: #3498db;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 6px;
+                cursor: pointer;
+                transition: all 0.3s;
+                font-size: 14px;
+                flex: 1;
+                min-width: 120px;
+            }
+            button:hover {
+                background: #2980b9;
+                transform: translateY(-1px);
+                box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+            }
+            #timerCanvas {
+                margin-top: 25px;
+                border: 2px solid #eee;
+                border-radius: 8px;
+                width: 100%;
+                max-width: 640px;
+            }
+            .color-picker {
+            margin: 15px 0;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .color-card {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            border: 2px solid #eee;
+        }
+        .color-card:hover {
+            transform: scale(1.1);
+        }
+        /* 修复自定义颜色选择器样式 */
+        .custom-color {
+            position: relative;
+            overflow: visible;
+        }
+        .custom-color input[type="color"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            left: 0;
+            top: 0;
+        }
+        /* 添加颜色预览指示 */
+        .color-card::after {
+            content: "✓";
+            color: white;
+            font-size: 20px;
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .color-card.active::after {
+            opacity: 1;
+        }
+        .color-group {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+        .color-group h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #666;
+        }
+
+         /* 新增移动端适配样式 */
+         @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                border-radius: 0;
+                box-shadow: none;
+            }
+            .input-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .input-group label {
+                margin-bottom: 8px;
+            }
+            button {
+                min-width: 100%;
+            }
+            #timerCanvas {
+                border: none;
+                max-width: 100%;
+                height: auto;
+            }
+        }
+        /* 新增格式提示样式 */
+        .format-notice {
+            background: #fff3cd;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 12px;
+            color: #856404;
+        }
+        /* 透明度控件样式 */
+        .alpha-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+              /* 新增格式按钮样式 */
+              .format-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .format-btn {
+            background: #e0e0e0;
+            color: #333;
+            border: 2px solid transparent;
+        }
+        .format-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #2980b9;
+        }
+        /* 透明颜色卡片 */
+        .transparent-card {
+            background: 
+                linear-gradient(45deg, #ccc 25%, transparent 25%),
+                linear-gradient(-45deg, #ccc 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #ccc 75%),
+                linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            background-size: 8px 8px;
+        }
+
+        /* 添加自定义颜色预览样式 */
+        .color-preview {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            background: repeating-conic-gradient(#808080 0% 25%, transparent 0% 50%) 50%/20px 20px;
+        }
+        .custom-color:hover .color-preview {
+            box-shadow: 0 0 0 2px #3498db;
+        }
+
+</style>
+
+
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>⏱ 精确计时器生成器</h1>
+            
+            <div class="settings-group">
+                <div class="input-group">
+                    <label for="timerInput">总持续时间 (秒):</label>
+                    <input type="number" id="timerInput" step="0.001" min="0.1" value="5.0">
+                </div>
+                
+                <div class="input-group">
+                    <label for="freezeDurationInput">结束后冻结时长 (秒):</label>
+                    <input type="number" id="freezeDurationInput" step="0.001" min="0.1" value="2.0">
+                </div>
+                
+                <div class="input-group">
+                    <label for="decimalPlaces">小数位数:</label>
+                    <select id="decimalPlaces">
+                        <option value="0">0 位</option>
+                        <option value="1">1 位</option>
+                        <option value="2">2 位</option>
+                        <option value="3" selected>3 位</option>
+                    </select>
+                </div>
+                <div class="color-group">
+                    <h3>背景颜色</h3>
+                    <div class="color-picker" id="bgColorPicker">
+                        <div class="color-card transparent-card" onclick="setBgColor('transparent')"></div>
+                        <div class="color-card" style="background: #FFFFFF" onclick="setBgColor('#FFFFFF')"></div>
+                        <div class="color-card" style="background: #FFCCCC" onclick="setBgColor('#FFCCCC')"></div>
+                        <div class="color-card" style="background: #CCFFCC" onclick="setBgColor('#CCFFCC')"></div>
+                        <div class="color-card" style="background: #CCCCFF" onclick="setBgColor('#CCCCFF')"></div>
+                        <div class="color-card" style="background: #FFFFCC" onclick="setBgColor('#FFFFCC')"></div>
+                        <div class="color-card custom-color">
+                    <!-- 自定义颜色选择器 -->
+                    <div class="color-card custom-color" style="position:relative">
+                        <input type="color" 
+                            id="customBgColor"
+                            style="position:absolute;width:100%;height:100%;opacity:0;cursor:pointer;"
+                            @change="updateCustomColor">
+                            <div class="color-preview" 
+                                 style="background: repeating-conic-gradient(#808080 0% 25%, transparent 0% 50%) 50% / 20px 20px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            
+        
+                <div class="color-group">
+                    <h3>文字颜色</h3>
+                    <div class="color-picker" id="textColorPicker">
+                        <!-- 预定义颜色 -->
+                        <div class="color-card" style="background: #000000" onclick="setTextColor('#000000')"></div>
+                        <div class="color-card" style="background: #FF0000" onclick="setTextColor('#FF0000')"></div>
+                        <div class="color-card" style="background: #009900" onclick="setTextColor('#009900')"></div>
+                        <div class="color-card" style="background: #0000FF" onclick="setTextColor('#0000FF')"></div>
+                        <div class="color-card" style="background: #FFFFFF;border:2px solid #eee" onclick="setTextColor('#FFFFFF')"></div>
+                        <!-- 自定义颜色 -->
+                        <div class="color-card custom-color">
+                            <input type="color" onchange="setTextColor(this.value)">
+                            <div style="width:100%;height:100%;background: 
+                                linear-gradient(45deg, #888 25%, transparent 25%),
+                                linear-gradient(-45deg, #888 25%, transparent 25%),
+                                linear-gradient(45deg, transparent 75%, #888 75%),
+                                linear-gradient(-45deg, transparent 75%, #888 75%)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="format-buttons">
+                    <button class="format-btn active" data-format="mp4">MP4</button>
+                    <button class="format-btn" data-format="webm">WebM（透明）</button>
+                </div>
+
+            </div>
+
+            <div class="color-group">
+                <h3>背景透明度</h3>
+                <div class="alpha-control">
+                    <input type="range" id="bgAlpha" min="0" max="1" step="0.1" value="1">
+                    <span id="alphaValue">100%</span>
+                </div>
+            </div>
+
+            <div id="formatNotice" class="format-notice" style="display:none">
+                ℹ️ WebM格式在iOS设备上需要第三方播放器，MP4格式不支持透明背景
+            </div>
+    
+            <div class="button-group">
+                <!-- <button onclick="setBackgroundColor()">🎨 背景颜色</button>
+                <button onclick="setFontColor()">✏️ 文字颜色</button> -->
+                <button onclick="generateVideo()">🎥 生成视频</button>
+            </div>
+    
+            <canvas id="timerCanvas" width="640" height="480"></canvas>
+        </div>
+
+        <script>
+            // 全局状态变量
+            let bgColor = '#FFFFFF';
+            let fontColor = '#000000';
+            let currentFormat = 'mp4';
+            let lastDrawTime = 0;
+            
+            // DOM元素初始化
+            const canvas = document.getElementById('timerCanvas');
+            const ctx = canvas.getContext('2d');
+            let mediaRecorder;
+            let recordedChunks = [];
+        
+            // 初始化事件监听
+            function initEventListeners() {
+                // 格式按钮事件
+                document.querySelectorAll('.format-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        // 移除其他按钮激活状态
+                        document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
+                        this.classList.add('active');
+                        currentFormat = this.dataset.format;
+        
+                        // 透明背景兼容处理
+                        if(bgColor === 'transparent' && currentFormat === 'mp4') {
+                            alert('MP4格式不支持透明背景，已自动切换为WebM格式');
+                            currentFormat = 'webm';
+                            document.querySelector('[data-format="webm"]').click();
+                        }
+                    });
+                });
+        
+                // 窗口大小变化监听
+                window.addEventListener('resize', resizeCanvas);
+            }
+        
+            // 核心绘制函数
+            function drawCanvas(currentTime) {
+                lastDrawTime = currentTime;
+                
+                // 背景处理
+                if(bgColor === 'transparent') {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                } else {
+                    ctx.fillStyle = bgColor;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+        
+                // 文字绘制
+                const decimalPlaces = parseInt(document.getElementById('decimalPlaces').value);
+                ctx.font = 'bold 72px Arial';
+                ctx.fillStyle = fontColor;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${currentTime.toFixed(decimalPlaces)}s`, canvas.width/2, canvas.height/2);
+            }
+        
+            // 背景颜色设置
+            function setBgColor(color) {
+                if(color === 'transparent') {
+                    // 格式自动切换
+                    if(currentFormat === 'mp4') {
+                        alert('透明背景需要WebM格式，已自动切换');
+                        document.querySelector('[data-format="webm"]').click();
+                    }
+                    bgColor = 'transparent';
+                } else {
+                    bgColor = color;
+                }
+
+                if(color !== 'transparent') {
+                const preview = document.querySelector('.custom-color .color-preview');
+                preview.style.background = color;
+                preview.style.backgroundImage = 'none'; // 移除棋盘格
+                }
+
+                requestAnimationFrame(() => drawCanvas(lastDrawTime));
+            }
+        
+            // 文字颜色设置
+            function setTextColor(color) {
+                fontColor = color;
+                document.querySelector('#textColorPicker input[type="color"]').value = color;
+                requestAnimationFrame(() => drawCanvas(lastDrawTime));
+            }
+        
+            // 视频生成逻辑
+            function generateVideo() {
+                const duration = parseFloat(document.getElementById('timerInput').value);
+                const freezeDuration = parseFloat(document.getElementById('freezeDurationInput').value);
+                
+                try {
+                    const stream = canvas.captureStream(30);
+                    const mimeType = currentFormat === 'webm' ? 
+                        'video/webm; codecs=vp9' : 'video/mp4';
+                    
+                    mediaRecorder = new MediaRecorder(stream, { mimeType });
+                } catch (e) {
+                    alert(`格式不支持: ${e.message}`);
+                    return;
+                }
+        
+                mediaRecorder.ondataavailable = handleDataAvailable;
+                mediaRecorder.onstop = handleStop;
+                mediaRecorder.start();
+        
+                const startTime = performance.now();
+        
+                function renderFrame() {
+                    const elapsed = performance.now() - startTime;
+                    const totalDuration = (duration + freezeDuration) * 1000;
+        
+                    if(elapsed <= totalDuration) {
+                        const currentTime = Math.min(elapsed / 1000, duration);
+                        drawCanvas(currentTime);
+                        requestAnimationFrame(renderFrame);
+                    } else {
+                        mediaRecorder.stop();
+                    }
+                }
+        
+                requestAnimationFrame(renderFrame);
+            }
+        
+            // 视频处理回调
+            function handleDataAvailable(event) {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            }
+        
+            function handleStop() {
+                const blob = new Blob(recordedChunks, {
+                    type: mediaRecorder.mimeType
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `timer.${currentFormat}`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                recordedChunks = [];
+            }
+        
+            // 画布自适应
+            function resizeCanvas() {
+                const maxWidth = Math.min(640, window.innerWidth * 0.9);
+                const aspectRatio = 640/480;
+                
+                canvas.width = maxWidth;
+                canvas.height = maxWidth / aspectRatio;
+                drawCanvas(lastDrawTime);
+            }
+        
+            // 初始化流程
+            initEventListeners();
+            resizeCanvas();
+            drawCanvas(0); // 初始绘制
+
+
+                // 新增自定义颜色更新函数
+            function updateCustomColor(event) {
+                const color = event.target.value;
+                const preview = event.target.nextElementSibling;
+                
+                // 更新预览显示
+                preview.style.background = color;
+                preview.style.backgroundImage = 'none';
+                
+                // 设置实际颜色
+                setBgColor(color);
+            }
+
+            // 初始化时绑定事件
+            document.getElementById('customBgColor').addEventListener('change', updateCustomColor);
+
+        </script>
+</body>
+</html>
